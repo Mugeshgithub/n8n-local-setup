@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install
-    startCommand: node start-n8n.js
+    startCommand: node start-n8n-simple.js
     envVars:
       - key: N8N_USER_FOLDER
         value: /opt/render/project/src
@@ -30,41 +30,11 @@ services:
         value: sqlite
       - key: N8N_DATABASE_SQLITE_DATABASE
         value: /opt/render/project/src/database/n8n.db
-      - key: DB_SQLITE_POOL_SIZE
-        value: "10"
-      - key: N8N_RUNNERS_ENABLED
-        value: "true"
-      - key: N8N_BLOCK_ENV_ACCESS_IN_NODE
-        value: "false"
-      - key: N8N_GIT_NODE_DISABLE_BARE_REPOS
-        value: "true"
-      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
-        value: "true"
       - key: N8N_LOG_LEVEL
         value: info
       - key: N8N_LOG_OUTPUT
-        value: console,file
-      - key: N8N_LOG_FILE_LOCATION
-        value: /opt/render/project/src/logs/
-      - key: N8N_DATABASE_SQLITE_DATABASE_PATH
-        value: /opt/render/project/src/database/n8n.db
-      - key: N8N_CUSTOM_EXTENSIONS
-        value: /opt/render/project/src/custom
-      - key: N8N_TEMPLATES_ENABLED
-        value: "true"
-      - key: N8N_TEMPLATES_HOST
-        value: https://api.n8n.io
-      - key: N8N_VERSION_NOTIFICATIONS_ENABLED
-        value: "true"
-      - key: N8N_VERSION_NOTIFICATIONS_ENDPOINT
-        value: https://api.n8n.io/versions/
-      - key: N8N_PERSONALIZATION_ENABLED
-        value: "true"
-      - key: N8N_USER_MANAGEMENT_DISABLED
-        value: "false"
+        value: console
       - key: N8N_DISABLE_UI
         value: "false"
-      - key: N8N_DISABLE_PRODUCTION_MAIN_PROCESS
+      - key: N8N_USER_MANAGEMENT_DISABLED
         value: "false"
-      - key: N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN
-        value: "true"
