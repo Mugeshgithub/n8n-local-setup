@@ -1,0 +1,31 @@
+{
+  "name": "n8n-local-setup",
+  "version": "1.0.0",
+  "description": "Complete n8n local setup with automated installation and configuration",
+  "main": "start-n8n.js",
+  "scripts": {
+    "start": "node start-n8n.js",
+    "setup": "node setup.js",
+    "dev": "n8n start"
+  },
+  "keywords": [
+    "n8n",
+    "automation",
+    "workflow",
+    "local",
+    "setup"
+  ],
+  "author": "Mugesh",
+  "license": "MIT",
+  "dependencies": {
+    "n8n": "^1.113.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mugeshgithub/n8n-local-setup.git"
+  },
+  "homepage": "https://github.com/Mugeshgithub/n8n-local-setup#readme"
+}
