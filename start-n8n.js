@@ -4,6 +4,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Colors for output
 const colors = {
@@ -54,7 +55,6 @@ async function startN8n() {
     // Generate encryption key if not exists
     let encryptionKey = process.env.N8N_ENCRYPTION_KEY;
     if (!encryptionKey) {
-      const crypto = require('crypto');
       encryptionKey = crypto.randomBytes(32).toString('hex');
       logInfo('Generated new encryption key');
     }
@@ -94,19 +94,6 @@ async function startN8n() {
 
     // Start n8n
     logInfo('Starting n8n process...');
-    
-    // Ensure directories exist before starting n8n
-    const fs = require('fs');
-    const path = require('path');
-    
-    const dirs = ['database', 'logs'];
-    dirs.forEach(dir => {
-      const fullPath = path.join(env.N8N_DATA_FOLDER, dir);
-      if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
-        logInfo(`Created directory: ${fullPath}`);
-      }
-    });
     
     const n8nProcess = spawn('npx', ['n8n', 'start'], {
       env: env,
