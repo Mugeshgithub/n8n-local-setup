@@ -43,8 +43,8 @@ async function startN8n() {
     log('🚀 Starting n8n on Railway...', 'cyan');
     
     // Create necessary directories
-    const dirs = ['database', 'logs', 'generated-reports'];
-    dirs.forEach(dir => {
+    const initialDirs = ['database', 'logs', 'generated-reports'];
+    initialDirs.forEach(dir => {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
         logInfo(`Created directory: ${dir}`);
