@@ -60,16 +60,17 @@ async function startN8n() {
     }
 
     // Set environment variables
+    const dataFolder = process.env.N8N_DATA_FOLDER || '/opt/render/project/src';
     const env = {
       ...process.env,
-      N8N_USER_FOLDER: process.env.N8N_USER_FOLDER || '/opt/render/project/src',
-      N8N_DATA_FOLDER: process.env.N8N_DATA_FOLDER || '/opt/render/project/src',
+      N8N_USER_FOLDER: dataFolder,
+      N8N_DATA_FOLDER: dataFolder,
       N8N_ENCRYPTION_KEY: encryptionKey,
       N8N_HOST: process.env.N8N_HOST || '0.0.0.0',
       N8N_PORT: process.env.PORT || '10000',
       WEBHOOK_URL: process.env.WEBHOOK_URL || `https://${process.env.RENDER_EXTERNAL_URL || 'localhost:10000'}`,
       N8N_DATABASE_TYPE: 'sqlite',
-      N8N_DATABASE_SQLITE_DATABASE: '/opt/render/project/src/database/n8n.db',
+      N8N_DATABASE_SQLITE_DATABASE: `${dataFolder}/database/n8n.db`,
       DB_SQLITE_POOL_SIZE: '10',
       N8N_RUNNERS_ENABLED: 'true',
       N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false',
@@ -77,7 +78,14 @@ async function startN8n() {
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true',
       N8N_LOG_LEVEL: 'info',
       N8N_LOG_OUTPUT: 'console,file',
-      N8N_LOG_FILE_LOCATION: '/opt/render/project/src/logs/'
+      N8N_LOG_FILE_LOCATION: `${dataFolder}/logs/`,
+      // Additional variables to prevent /app usage
+      N8N_CUSTOM_EXTENSIONS: `${dataFolder}/custom`,
+      N8N_TEMPLATES_ENABLED: 'true',
+      N8N_TEMPLATES_HOST: 'https://api.n8n.io',
+      N8N_VERSION_NOTIFICATIONS_ENABLED: 'true',
+      N8N_VERSION_NOTIFICATIONS_ENDPOINT: 'https://api.n8n.io/versions/',
+      N8N_PERSONALIZATION_ENABLED: 'true'
     };
 
     logStatus('Environment configured');
@@ -87,10 +95,24 @@ async function startN8n() {
     // Start n8n
     logInfo('Starting n8n process...');
     
+    // Ensure directories exist before starting n8n
+    const fs = require('fs');
+    const path = require('path');
+    
+    const dirs = ['database', 'logs'];
+    dirs.forEach(dir => {
+      const fullPath = path.join(env.N8N_DATA_FOLDER, dir);
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+        logInfo(`Created directory: ${fullPath}`);
+      }
+    });
+    
     const n8nProcess = spawn('npx', ['n8n', 'start'], {
       env: env,
       stdio: 'inherit',
-      shell: true
+      shell: true,
+      cwd: env.N8N_DATA_FOLDER
     });
 
     // Handle process events
