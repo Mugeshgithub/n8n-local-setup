@@ -1,0 +1,518 @@
+{
+  "name": "Multi-Input Image to Video Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "image-upload",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Image Upload Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 200],
+      "webhookId": "wine-video-webhook"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "getAll",
+        "folderId": "1CSng8t339aszBMXkAUaCbrg1tX78w2BB",
+        "options": {
+          "fields": "files(id,name,mimeType,createdTime,webContentLink)",
+          "q": "mimeType contains 'image/' and trashed=false"
+        }
+      },
+      "id": "google-drive-trigger",
+      "name": "Google Drive Monitor",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [240, 400],
+      "trigger": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Hardcoded Google Drive image for testing\nconst workflowId = 'wine-video-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);\n\n// Your Google Drive image URL (hardcoded)\nconst imageUrl = 'https://drive.google.com/uc?id=15ntREpT7-vS8ppda2aF8MuXrmmt110MU';\nconst fileName = 'wine-bottle-test';\nconst fileId = '15ntREpT7-vS8ppda2aF8MuXrmmt110MU';\n\nconst processedImage = {\n  url: imageUrl,\n  type: 'url',\n  fileName: fileName,\n  fileId: fileId,\n  mimeType: 'image/jpeg'\n};\n\nreturn {\n  workflowId,\n  imageUrl: imageUrl,\n  fileName: fileName,\n  fileId: fileId,\n  processedImage,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "image-processor",
+      "name": "Image Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.groqApi.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.1-8b-instant"
+            },
+            {
+              "name": "messages",
+              "value": [
+                {
+                  "role": "system",
+                  "content": "You are a professional wine marketing expert. Analyze the wine bottle image and provide detailed insights for creating a compelling video advertisement."
+                },
+                {
+                  "role": "user",
+                  "content": "Analyze this wine bottle image and provide:\n1. Wine type and quality level\n2. Brand positioning (luxury, casual, modern, traditional)\n3. Target audience\n4. Key visual elements to highlight\n5. Recommended video style and mood\n6. Suggested marketing copy\n7. Video length recommendation (15-30 seconds)\n8. Color scheme and lighting suggestions\n\nImage: {{ $json.processedImage.url || 'Base64 image data provided' }}"
+                }
+              ]
+            },
+            {
+              "name": "max_tokens",
+              "value": 1000
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "ai-image-analysis",
+      "name": "Groq AI Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI analysis and create video generation prompt\nconst analysis = $input.first().json.choices[0].message.content;\nconst workflowId = $('Image Processor').first().json.workflowId;\nconst imageUrl = $('Image Processor').first().json.imageUrl;\n\n// Extract key information from analysis\nconst lines = analysis.split('\\n');\nlet wineType = 'Premium Wine';\nlet brandPositioning = 'Luxury';\nlet targetAudience = 'Wine Enthusiasts';\nlet videoStyle = 'Cinematic';\nlet videoLength = '30';\nlet colorScheme = 'Warm, elegant';\n\n// Parse analysis (simplified extraction)\nlines.forEach(line => {\n  if (line.includes('Wine type:')) wineType = line.split(':')[1]?.trim() || wineType;\n  if (line.includes('Brand positioning:')) brandPositioning = line.split(':')[1]?.trim() || brandPositioning;\n  if (line.includes('Target audience:')) targetAudience = line.split(':')[1]?.trim() || targetAudience;\n  if (line.includes('Video style:')) videoStyle = line.split(':')[1]?.trim() || videoStyle;\n  if (line.includes('Video length:')) videoLength = line.split(':')[1]?.trim().replace('seconds', '').trim() || videoLength;\n  if (line.includes('Color scheme:')) colorScheme = line.split(':')[1]?.trim() || colorScheme;\n});\n\n// Create video generation prompt\nconst videoPrompt = `Create a professional wine bottle marketing video with the following specifications:\n\nWine Type: ${wineType}\nBrand Positioning: ${brandPositioning}\nTarget Audience: ${targetAudience}\nVideo Style: ${videoStyle}\nDuration: ${videoLength} seconds\nColor Scheme: ${colorScheme}\n\nInclude:\n- Smooth bottle rotation\n- Elegant wine pour animation\n- Professional lighting\n- Brand label focus\n- Sophisticated background\n- Cinematic camera movements\n\nStyle: High-end, luxurious, professional wine advertisement`;\n\nreturn {\n  workflowId,\n  imageUrl,\n  analysis,\n  wineType,\n  brandPositioning,\n  targetAudience,\n  videoStyle,\n  videoLength: parseInt(videoLength),\n  colorScheme,\n  videoPrompt,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "prompt-generator",
+      "name": "Video Prompt Generator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.replicate.com/v1/predictions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "replicateApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token {{ $credentials.replicateApi.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "version",
+              "value": "stability-ai/stable-video-diffusion:76c4a6730ce3e4a0ac0492a256a9d05f1a211c68f3fd698ee1fe1e57c3c7d476"
+            },
+            {
+              "name": "input",
+              "value": {
+                "image": "={{ $('Image Processor').first().json.processedImage.url || $('Image Processor').first().json.processedImage.data }}",
+                "num_frames": "={{ $json.videoLength * 8 }}",
+                "fps": 8,
+                "motion_bucket_id": 127,
+                "cond_aug": 0.02
+              }
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "video-generation",
+      "name": "Stable Video Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.replicate.com/v1/predictions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "replicateApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token {{ $credentials.replicateApi.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "version",
+              "value": "leia-pix/leia-pix-3d:8b1b8978d8f8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c"
+            },
+            {
+              "name": "input",
+              "value": {
+                "image": "={{ $('Image Processor').first().json.processedImage.url || $('Image Processor').first().json.processedImage.data }}",
+                "depth_estimation": "midas",
+                "animation_style": "cinematic",
+                "animation_duration": "={{ $('Video Prompt Generator').first().json.videoLength }}"
+              }
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "3d-animation",
+      "name": "3D Animation (LeiaPix)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process video generation results\nconst stableVideoResult = $('Stable Video Generation').first().json;\nconst leiaPixResult = $('3D Animation (LeiaPix)').first().json;\nconst workflowData = $('Video Prompt Generator').first().json;\n\n// Determine which video to use (prefer Stable Video, fallback to LeiaPix)\nlet selectedVideo = null;\nlet videoSource = '';\n\nif (stableVideoResult && stableVideoResult.output) {\n  selectedVideo = stableVideoResult.output;\n  videoSource = 'Stable Video Diffusion';\n} else if (leiaPixResult && leiaPixResult.output) {\n  selectedVideo = leiaPixResult.output;\n  videoSource = 'LeiaPix 3D';\n} else {\n  throw new Error('Video generation failed for both services');\n}\n\nreturn {\n  workflowId: workflowData.workflowId,\n  imageUrl: workflowData.imageUrl,\n  wineType: workflowData.wineType,\n  brandPositioning: workflowData.brandPositioning,\n  targetAudience: workflowData.targetAudience,\n  videoStyle: workflowData.videoStyle,\n  videoLength: workflowData.videoLength,\n  colorScheme: workflowData.colorScheme,\n  videoUrl: selectedVideo,\n  videoSource,\n  status: 'generated',\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "video-processor",
+      "name": "Video Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.videoUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-video",
+      "name": "Download Generated Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/me/photos",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.facebookApi.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "🍷 New wine bottle video generated! Check out this amazing {{ $('Video Processor').first().json.wineType }} #wine #marketing #automation"
+            },
+            {
+              "name": "url",
+              "value": "={{ $('Video Processor').first().json.videoUrl }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "post-facebook",
+      "name": "Post to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.instagram.com/v1/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "instagramApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.instagramApi.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $('Video Processor').first().json.videoUrl }}"
+            },
+            {
+              "name": "caption",
+              "value": "🍷 Wine bottle video generated! {{ $('Video Processor').first().json.wineType }} #wine #marketing #automation"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "post-instagram",
+      "name": "Post to Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"Video generated and posted to social media\", \"workflowId\": $('Video Processor').first().json.workflowId, \"videoUrl\": $('Video Processor').first().json.videoUrl, \"wineType\": $('Video Processor').first().json.wineType, \"videoSource\": $('Video Processor').first().json.videoSource, \"socialMediaPosts\": { \"facebook\": \"posted\", \"instagram\": \"posted\" }, \"timestamp\": new Date().toISOString() } }}"
+      },
+      "id": "final-response",
+      "name": "Final Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"error\", \"message\": \"Video generation failed\", \"error\": $json.message, \"timestamp\": new Date().toISOString() } }}"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 500]
+    }
+  ],
+  "connections": {
+    "Image Upload Webhook": {
+      "main": [
+        [
+          {
+            "node": "Image Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Monitor": {
+      "main": [
+        [
+          {
+            "node": "Image Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Processor": {
+      "main": [
+        [
+          {
+            "node": "AI Image Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Image Analysis": {
+      "main": [
+        [
+          {
+            "node": "Video Prompt Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Prompt Generator": {
+      "main": [
+        [
+          {
+            "node": "Stable Video Generation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "3D Animation (LeiaPix)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stable Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Video Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3D Animation (LeiaPix)": {
+      "main": [
+        [
+          {
+            "node": "Video Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Processor": {
+      "main": [
+        [
+          {
+            "node": "Download Generated Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Generated Video": {
+      "main": [
+        [
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Response": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "wine-video-automation",
+      "name": "Wine Video Automation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

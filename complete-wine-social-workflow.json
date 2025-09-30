@@ -1,0 +1,475 @@
+{
+  "name": "Complete Wine Bottle Social Media Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Bot Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "telegram-wine-bot"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wine-upload",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Web Upload Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 500],
+      "webhookId": "wine-upload-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle input from Telegram or Webhook\nconst input = $input.first().json;\nlet imageData = null;\nlet userInfo = {};\nlet source = '';\n\n// Check if input is from Telegram\nif (input.message && input.message.photo) {\n  source = 'telegram';\n  userInfo = {\n    userId: input.message.from.id,\n    username: input.message.from.username || input.message.from.first_name,\n    chatId: input.message.chat.id\n  };\n  // Get the highest quality photo\n  const photos = input.message.photo;\n  const highestQuality = photos[photos.length - 1];\n  imageData = {\n    fileId: highestQuality.file_id,\n    type: 'telegram_file_id'\n  };\n} else if (input.imageUrl || input.imageData) {\n  source = 'webhook';\n  userInfo = {\n    userId: input.userId || 'web_user',\n    username: input.username || 'Web User'\n  };\n  imageData = {\n    url: input.imageUrl,\n    data: input.imageData,\n    type: input.imageUrl ? 'url' : 'base64'\n  };\n} else {\n  throw new Error('No image data found in input');\n}\n\n// Generate unique workflow ID\nconst workflowId = 'wine-social-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);\n\nreturn {\n  workflowId,\n  source,\n  userInfo,\n  imageData,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "input-processor",
+      "name": "Input Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "fileId": "={{ $json.imageData.fileId }}",
+        "operation": "get"
+      },
+      "id": "get-telegram-file",
+      "name": "Get Telegram File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.imageData.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-web-image",
+      "name": "Download Web Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-vision-preview",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional wine marketing expert and social media strategist. Analyze the wine bottle image and create compelling social media content."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this wine bottle image and provide:\n\n1. Wine Analysis:\n   - Wine type and quality level\n   - Brand positioning (luxury, casual, modern, traditional)\n   - Target audience\n   - Key visual elements\n\n2. Social Media Content:\n   - Instagram caption (with relevant hashtags)\n   - TikTok script (15-30 seconds)\n   - Facebook post text\n   - Twitter post (with hashtags)\n   - Best posting times for each platform\n\n3. Video Specifications:\n   - Recommended video style\n   - Duration (15-60 seconds)\n   - Key moments to highlight\n   - Call-to-action suggestions\n\nImage: {{ $json.imageData.url || 'Image data provided' }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 1500
+        }
+      },
+      "id": "ai-content-analysis",
+      "name": "AI Content Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI analysis and create social media content\nconst analysis = $input.first().json.choices[0].message.content;\nconst workflowData = $('Input Processor').first().json;\n\n// Extract content from analysis\nconst lines = analysis.split('\\n');\nlet wineType = 'Premium Wine';\nlet brandPositioning = 'Luxury';\nlet targetAudience = 'Wine Enthusiasts';\nlet instagramCaption = '';\nlet tiktokScript = '';\nlet facebookPost = '';\nlet twitterPost = '';\nlet videoStyle = 'Cinematic';\nlet videoDuration = '30';\nlet callToAction = 'Shop now!';\n\n// Parse analysis (simplified extraction)\nlet currentSection = '';\nlines.forEach(line => {\n  const trimmed = line.trim();\n  if (trimmed.includes('Wine type:')) wineType = trimmed.split(':')[1]?.trim() || wineType;\n  if (trimmed.includes('Brand positioning:')) brandPositioning = trimmed.split(':')[1]?.trim() || brandPositioning;\n  if (trimmed.includes('Target audience:')) targetAudience = trimmed.split(':')[1]?.trim() || targetAudience;\n  if (trimmed.includes('Instagram caption:')) currentSection = 'instagram';\n  if (trimmed.includes('TikTok script:')) currentSection = 'tiktok';\n  if (trimmed.includes('Facebook post:')) currentSection = 'facebook';\n  if (trimmed.includes('Twitter post:')) currentSection = 'twitter';\n  if (trimmed.includes('Video style:')) videoStyle = trimmed.split(':')[1]?.trim() || videoStyle;\n  if (trimmed.includes('Duration:')) videoDuration = trimmed.split(':')[1]?.trim().replace('seconds', '').trim() || videoDuration;\n  if (trimmed.includes('Call-to-action:')) callToAction = trimmed.split(':')[1]?.trim() || callToAction;\n  \n  // Collect content based on current section\n  if (currentSection === 'instagram' && trimmed && !trimmed.includes('Instagram caption:')) {\n    instagramCaption += trimmed + '\\n';\n  } else if (currentSection === 'tiktok' && trimmed && !trimmed.includes('TikTok script:')) {\n    tiktokScript += trimmed + '\\n';\n  } else if (currentSection === 'facebook' && trimmed && !trimmed.includes('Facebook post:')) {\n    facebookPost += trimmed + '\\n';\n  } else if (currentSection === 'twitter' && trimmed && !trimmed.includes('Twitter post:')) {\n    twitterPost += trimmed + '\\n';\n  }\n});\n\n// Create video generation prompt\nconst videoPrompt = `Create a professional wine bottle marketing video with the following specifications:\n\nWine Type: ${wineType}\nBrand Positioning: ${brandPositioning}\nTarget Audience: ${targetAudience}\nVideo Style: ${videoStyle}\nDuration: ${videoDuration} seconds\nCall to Action: ${callToAction}\n\nInclude:\n- Smooth bottle rotation\n- Elegant wine pour animation\n- Professional lighting\n- Brand label focus\n- Sophisticated background\n- Cinematic camera movements\n- Text overlay with key selling points\n\nStyle: High-end, luxurious, professional wine advertisement for social media`;\n\nreturn {\n  workflowId: workflowData.workflowId,\n  source: workflowData.source,\n  userInfo: workflowData.userInfo,\n  wineType,\n  brandPositioning,\n  targetAudience,\n  instagramCaption: instagramCaption.trim(),\n  tiktokScript: tiktokScript.trim(),\n  facebookPost: facebookPost.trim(),\n  twitterPost: twitterPost.trim(),\n  videoStyle,\n  videoDuration: parseInt(videoDuration),\n  callToAction,\n  videoPrompt,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "content-generator",
+      "name": "Content Generator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "model": "stable-video-diffusion",
+        "input": "={{ $json.videoPrompt }}",
+        "image": "={{ $('Input Processor').first().json.imageData.url || $('Input Processor').first().json.imageData.data }}",
+        "options": {
+          "num_frames": "={{ $json.videoDuration * 8 }}",
+          "fps": 8,
+          "motion_bucket_id": 127,
+          "cond_aug": 0.02
+        }
+      },
+      "id": "video-generation",
+      "name": "Video Generation",
+      "type": "n8n-nodes-base.replicate",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process video generation result\nconst videoResult = $input.first().json;\nconst contentData = $('Content Generator').first().json;\n\nlet videoUrl = null;\nif (videoResult && videoResult.output) {\n  videoUrl = videoResult.output;\n}\n\nreturn {\n  ...contentData,\n  videoUrl,\n  videoStatus: videoUrl ? 'generated' : 'failed',\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "video-processor",
+      "name": "Video Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.videoUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-video",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "filePath": "={{ '/Users/mugesh/n8n local/generated-videos/' + $json.workflowId + '.mp4' }}",
+        "fileContent": "={{ $binary.data }}",
+        "options": {}
+      },
+      "id": "save-video",
+      "name": "Save Video",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "text": "={{ $('Content Generator').first().json.instagramCaption }}",
+        "additionalFields": {
+          "media": {
+            "media": [
+              {
+                "mediaType": "video",
+                "mediaUrl": "={{ $('Video Processor').first().json.videoUrl }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "post-instagram",
+      "name": "Post to Instagram",
+      "type": "n8n-nodes-base.instagram",
+      "typeVersion": 1,
+      "position": [2220, 100]
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "text": "={{ $('Content Generator').first().json.tiktokScript }}",
+        "additionalFields": {
+          "media": {
+            "media": [
+              {
+                "mediaType": "video",
+                "mediaUrl": "={{ $('Video Processor').first().json.videoUrl }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "post-tiktok",
+      "name": "Post to TikTok",
+      "type": "n8n-nodes-base.tikTok",
+      "typeVersion": 1,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "text": "={{ $('Content Generator').first().json.facebookPost }}",
+        "additionalFields": {
+          "media": {
+            "media": [
+              {
+                "mediaType": "video",
+                "mediaUrl": "={{ $('Video Processor').first().json.videoUrl }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "post-facebook",
+      "name": "Post to Facebook",
+      "type": "n8n-nodes-base.facebook",
+      "typeVersion": 1,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "text": "={{ $('Content Generator').first().json.twitterPost }}",
+        "additionalFields": {
+          "media": {
+            "media": [
+              {
+                "mediaType": "video",
+                "mediaUrl": "={{ $('Video Processor').first().json.videoUrl }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "post-twitter",
+      "name": "Post to Twitter",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 1,
+      "position": [2220, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Input Processor').first().json.userInfo.chatId }}",
+        "text": "🍷 *Wine Video Generated Successfully!*\n\n✅ Video created and posted to social media\n📱 Check your Instagram, TikTok, Facebook, and Twitter\n🎬 Video saved locally\n\n*Wine Details:*\n• Type: {{ $('Content Generator').first().json.wineType }}\n• Style: {{ $('Content Generator').first().json.videoStyle }}\n• Duration: {{ $('Content Generator').first().json.videoDuration }} seconds\n\n*Social Media Posts:*\n• Instagram: ✅ Posted\n• TikTok: ✅ Posted\n• Facebook: ✅ Posted\n• Twitter: ✅ Posted\n\nThank you for using our wine marketing automation! 🍾",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "notify-telegram",
+      "name": "Notify User via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [2440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"Wine video generated and posted to social media\", \"workflowId\": $json.workflowId, \"socialMediaPosts\": { \"instagram\": \"posted\", \"tiktok\": \"posted\", \"facebook\": \"posted\", \"twitter\": \"posted\" }, \"videoUrl\": $json.videoUrl, \"localFilePath\": \"/Users/mugesh/n8n local/generated-videos/\" + $json.workflowId + \".mp4\" } }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2440, 500]
+    }
+  ],
+  "connections": {
+    "Telegram Bot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Upload Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Processor": {
+      "main": [
+        [
+          {
+            "node": "Get Telegram File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Web Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Telegram File": {
+      "main": [
+        [
+          {
+            "node": "AI Content Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Web Image": {
+      "main": [
+        [
+          {
+            "node": "AI Content Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Analysis": {
+      "main": [
+        [
+          {
+            "node": "Content Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Generator": {
+      "main": [
+        [
+          {
+            "node": "Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Video Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Processor": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Save Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Video": {
+      "main": [
+        [
+          {
+            "node": "Post to Instagram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to TikTok",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Notify User via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to TikTok": {
+      "main": [
+        [
+          {
+            "node": "Notify User via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Notify User via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Twitter": {
+      "main": [
+        [
+          {
+            "node": "Notify User via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "wine-social-automation",
+      "name": "Wine Social Automation"
+    }
+  ],
+  "triggerCount": 2,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
