@@ -21,6 +21,11 @@ services:
           type: web
           name: n8n-automation
           property: host
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: n8n-automation
+          property: host
       - key: N8N_DATABASE_TYPE
         value: sqlite
       - key: N8N_DATABASE_SQLITE_DATABASE
@@ -41,3 +46,25 @@ services:
         value: console,file
       - key: N8N_LOG_FILE_LOCATION
         value: /opt/render/project/src/logs/
+      - key: N8N_DATABASE_SQLITE_DATABASE_PATH
+        value: /opt/render/project/src/database/n8n.db
+      - key: N8N_CUSTOM_EXTENSIONS
+        value: /opt/render/project/src/custom
+      - key: N8N_TEMPLATES_ENABLED
+        value: "true"
+      - key: N8N_TEMPLATES_HOST
+        value: https://api.n8n.io
+      - key: N8N_VERSION_NOTIFICATIONS_ENABLED
+        value: "true"
+      - key: N8N_VERSION_NOTIFICATIONS_ENDPOINT
+        value: https://api.n8n.io/versions/
+      - key: N8N_PERSONALIZATION_ENABLED
+        value: "true"
+      - key: N8N_USER_MANAGEMENT_DISABLED
+        value: "false"
+      - key: N8N_DISABLE_UI
+        value: "false"
+      - key: N8N_DISABLE_PRODUCTION_MAIN_PROCESS
+        value: "false"
+      - key: N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN
+        value: "true"
