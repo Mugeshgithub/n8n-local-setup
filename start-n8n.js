@@ -74,6 +74,7 @@ async function startN8n() {
       WEBHOOK_URL: process.env.WEBHOOK_URL || `https://${process.env.RENDER_EXTERNAL_URL || 'localhost:10000'}`,
       N8N_DATABASE_TYPE: 'sqlite',
       N8N_DATABASE_SQLITE_DATABASE: `${dataFolder}/database/n8n.db`,
+      N8N_DATABASE_SQLITE_DATABASE_PATH: `${dataFolder}/database/n8n.db`,
       DB_SQLITE_POOL_SIZE: '10',
       N8N_RUNNERS_ENABLED: 'true',
       N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false',
@@ -88,7 +89,11 @@ async function startN8n() {
       N8N_TEMPLATES_HOST: 'https://api.n8n.io',
       N8N_VERSION_NOTIFICATIONS_ENABLED: 'true',
       N8N_VERSION_NOTIFICATIONS_ENDPOINT: 'https://api.n8n.io/versions/',
-      N8N_PERSONALIZATION_ENABLED: 'true'
+      N8N_PERSONALIZATION_ENABLED: 'true',
+      // Ensure data persistence
+      N8N_USER_MANAGEMENT_DISABLED: 'false',
+      N8N_DISABLE_UI: 'false',
+      N8N_DISABLE_PRODUCTION_MAIN_PROCESS: 'false'
     };
 
     logStatus('Environment configured');
@@ -101,7 +106,7 @@ async function startN8n() {
     const n8nProcess = spawn('npx', ['n8n', 'start'], {
       env: env,
       stdio: 'inherit',
-      shell: true,
+      shell: false,
       cwd: env.N8N_DATA_FOLDER
     });
 
