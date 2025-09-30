@@ -18,6 +18,9 @@ database/
 logs/
 *.log
 
+# Workflow files (keep locally, don't track in git)
+*.json
+
 # Node modules
 node_modules/
 
