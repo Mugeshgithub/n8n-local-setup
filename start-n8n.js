@@ -62,13 +62,14 @@ async function startN8n() {
     // Set environment variables
     const env = {
       ...process.env,
-      N8N_USER_FOLDER: process.env.N8N_USER_FOLDER || '/app',
+      N8N_USER_FOLDER: process.env.N8N_USER_FOLDER || '/opt/render/project/src',
+      N8N_DATA_FOLDER: process.env.N8N_DATA_FOLDER || '/opt/render/project/src',
       N8N_ENCRYPTION_KEY: encryptionKey,
       N8N_HOST: process.env.N8N_HOST || '0.0.0.0',
-      N8N_PORT: process.env.PORT || '5678',
-      WEBHOOK_URL: process.env.WEBHOOK_URL || `https://${process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:5678'}`,
+      N8N_PORT: process.env.PORT || '10000',
+      WEBHOOK_URL: process.env.WEBHOOK_URL || `https://${process.env.RENDER_EXTERNAL_URL || 'localhost:10000'}`,
       N8N_DATABASE_TYPE: 'sqlite',
-      N8N_DATABASE_SQLITE_DATABASE: '/app/database/n8n.db',
+      N8N_DATABASE_SQLITE_DATABASE: '/opt/render/project/src/database/n8n.db',
       DB_SQLITE_POOL_SIZE: '10',
       N8N_RUNNERS_ENABLED: 'true',
       N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false',
@@ -76,7 +77,7 @@ async function startN8n() {
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true',
       N8N_LOG_LEVEL: 'info',
       N8N_LOG_OUTPUT: 'console,file',
-      N8N_LOG_FILE_LOCATION: '/app/logs/'
+      N8N_LOG_FILE_LOCATION: '/opt/render/project/src/logs/'
     };
 
     logStatus('Environment configured');

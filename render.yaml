@@ -8,6 +8,8 @@ services:
     envVars:
       - key: N8N_USER_FOLDER
         value: /opt/render/project/src
+      - key: N8N_DATA_FOLDER
+        value: /opt/render/project/src
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
       - key: N8N_HOST
