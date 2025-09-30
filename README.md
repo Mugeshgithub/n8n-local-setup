@@ -31,6 +31,8 @@ A complete guide to set up n8n locally on your machine for workflow automation.
    - Open your browser
    - Go to: http://localhost:5678
    - Complete the one-time setup
+   - **Important**: Check your email for the activation key
+   - Enter the activation key when prompted to activate your n8n instance
 
 ## 📁 Project Structure
 
@@ -139,6 +141,12 @@ pkill -f n8n
    - Check that the database path is correct
    - Verify the N8N_USER_FOLDER is set properly
 
+5. **Activation key issues**
+   - Check your email (including spam folder) for the activation key
+   - The activation key is sent to the email you used during setup
+   - If you don't receive it, check your email settings or try a different email
+   - You can also try restarting n8n and going through setup again
+
 ### Reset Everything
 
 If you want to start fresh:
@@ -159,10 +167,11 @@ rm -rf database/ .n8n/
 After setting up n8n locally:
 
 1. **Complete the initial setup** in the web interface
-2. **Create your first workflow** or import existing ones
-3. **Set up API credentials** for external services
-4. **Configure webhooks** for external triggers
-5. **Schedule workflows** for automation
+2. **Check your email** for the activation key and enter it when prompted
+3. **Create your first workflow** or import existing ones
+4. **Set up API credentials** for external services
+5. **Configure webhooks** for external triggers
+6. **Schedule workflows** for automation
 
 ## 🛠️ Advanced Configuration
 
