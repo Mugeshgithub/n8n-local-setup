@@ -264,6 +264,13 @@ For production use, consider:
 - [n8n GitHub](https://github.com/n8n-io/n8n)
 - [n8n Workflow Examples](https://n8n.io/workflows/)
 
+## 👨‍💻 Created By
+
+**Mugesh M**
+- 🔗 **GitHub:** [@Mugeshgithub](https://github.com/Mugeshgithub)
+- 💼 **LinkedIn:** [Connect with me](https://linkedin.com/in/your-profile)
+- 📧 **Email:** your.email@domain.com
+
 ## ⭐ How to Support This Project
 
 **If this helped you, please:**

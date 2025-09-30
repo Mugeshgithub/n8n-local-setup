@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// n8n Cloud Deployment Solution
+// Created by Mugesh M
+// GitHub: https://github.com/Mugeshgithub/n8n-local-setup
+
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
