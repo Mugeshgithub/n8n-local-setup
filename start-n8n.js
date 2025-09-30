@@ -41,16 +41,16 @@ function logError(message) {
 // Main startup function
 async function startN8n() {
   try {
-    log('🚀 Starting n8n on Railway...', 'cyan');
+    log('🚀 Starting n8n on Render...', 'cyan');
     
     // Create necessary directories
     const initialDirs = ['database', 'logs', 'generated-reports'];
-    initialDirs.forEach(dir => {
+    for (const dir of initialDirs) {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
         logInfo(`Created directory: ${dir}`);
       }
-    });
+    }
 
     // Generate encryption key if not exists
     let encryptionKey = process.env.N8N_ENCRYPTION_KEY;
