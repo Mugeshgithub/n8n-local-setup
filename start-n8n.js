@@ -43,12 +43,16 @@ async function startN8n() {
   try {
     log('🚀 Starting n8n on Render...', 'cyan');
     
-    // Create necessary directories
+    // Set data folder first
+    const dataFolder = process.env.N8N_DATA_FOLDER || '/opt/render/project/src';
+    
+    // Create necessary directories in the data folder
     const initialDirs = ['database', 'logs', 'generated-reports'];
     for (const dir of initialDirs) {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        logInfo(`Created directory: ${dir}`);
+      const fullPath = path.join(dataFolder, dir);
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+        logInfo(`Created directory: ${fullPath}`);
       }
     }
 
@@ -60,7 +64,6 @@ async function startN8n() {
     }
 
     // Set environment variables
-    const dataFolder = process.env.N8N_DATA_FOLDER || '/opt/render/project/src';
     const env = {
       ...process.env,
       N8N_USER_FOLDER: dataFolder,
