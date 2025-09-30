@@ -19,7 +19,21 @@ logs/
 *.log
 
 # Workflow files (keep locally, don't track in git)
-*.json
+*-workflow.json
+complete-*.json
+vijay-*.json
+wine-*.json
+
+# Marketing and content files (keep locally)
+MARKETING_STRATEGY.md
+linkedin-post.md
+medium-article.md
+simple-medium-post.md
+demo-script.md
+
+# Generated content
+generated-reports/
+generated-videos/
 
 # Node modules
 node_modules/
