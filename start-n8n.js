@@ -43,8 +43,8 @@ async function startN8n() {
   try {
     log('🚀 Starting n8n on Render...', 'cyan');
     
-    // Set data folder first
-    const dataFolder = process.env.N8N_DATA_FOLDER || '/opt/render/project/src';
+    // Set data folder first - use persistent disk on Render
+    const dataFolder = process.env.N8N_DATA_FOLDER || '/data';
     
     // Create necessary directories in the data folder
     const initialDirs = ['database', 'logs', 'generated-reports'];
